@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Endless Highway</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="gameContainer">
+    <div id="hud">
+      <div class="hud-block">
+        <div class="hud-label">SPEED</div>
+        <div class="hud-value"><span id="speedValue">0</span> <span class="unit">km/h</span></div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-label">DISTANCE</div>
+        <div class="hud-value"><span id="distanceValue">0</span> <span class="unit">m</span></div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-label">SCORE</div>
+        <div class="hud-value"><span id="scoreValue">0</span></div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-label">CAR</div>
+        <div class="hud-value"><span id="carValue">Sports</span></div>
+      </div>
+    </div>
+    <div id="playfield"></div>
+    <div id="controls">
+      <div class="help">WASD / Arrows to drive &nbsp;•&nbsp; SHIFT boost &nbsp;•&nbsp; SPACE brake &nbsp;•&nbsp; 1/2/3 change car</div>
+    </div>
+    <div id="ui-layer">
+      <div id="solo-badge">Solo — dodging AI traffic</div>
+      <div id="carPicker">
+        <button class="car-btn active" data-car="0">1&nbsp;·&nbsp;Sports</button>
+        <button class="car-btn" data-car="1">2&nbsp;·&nbsp;Truck</button>
+        <button class="car-btn" data-car="2">3&nbsp;·&nbsp;Muscle</button>
+      </div>
+      <div id="crashOverlay" class="hidden">
+        <div class="crash-inner">
+          <div class="crash-title">CRASH!</div>
+          <div class="crash-sub">Distance <span id="crashDistance">0</span> m</div>
+          <button id="respawnBtn">Respawn</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/three@0.147.0/build/three.min.js"></script>
+
+  <script src="GameObject3D.js"></script>
+  <script src="CarFactory.js"></script>
+  <script src="Player.js"></script>
+  <script src="RemotePlayer.js"></script>
+  <script src="AICar.js"></script>
+  <script src="RoadChunk.js"></script>
+  <script src="Game.js"></script>
+  
+  <script>
+    const game = new Game();
+    window.game = game;
+  </script>
+</body>
+</html>
