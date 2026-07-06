@@ -1,0 +1,16 @@
+# Changelog
+
+## v0.1.2
+
+- Fixed inverted steering
+- Improved handling
+- Added predictive lane-changing AI
+
+## v0.1.1
+
+- Added multiple car types
+- Added HUD
+
+## v0.1.0
+
+Initial playable version.
