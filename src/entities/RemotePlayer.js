@@ -1,7 +1,16 @@
-class RemotePlayer extends GameObject3D {
+import * as THREE from "three";
+
+import { GameObject3D } from "../core/GameObject3D.js";
+
+import {
+  CarFactory_create,
+  CarFactory_getType,
+} from "../graphics/CarFactory.js";
+
+export class RemotePlayer extends GameObject3D {
   constructor(scene, playerIndex, carTypeIndex) {
     super(scene);
-    this.name = 'RemotePlayer';
+    this.name = "RemotePlayer";
     this.playerIndex = playerIndex || 0;
     this.carTypeIndex = carTypeIndex || 0;
     this.targetPos = new THREE.Vector3();
@@ -29,9 +38,12 @@ class RemotePlayer extends GameObject3D {
 
   createMesh() {
     // Slightly hue-shift remote cars so they read as "other players"
-    const palettes = [0x50e070, 0xa060ff, 0xffa030, 0x30d0e0, 0xff70b0, 0xf0f050, 0x60a0ff, 0xff5050];
+    const palettes = [
+      0x50e070, 0xa060ff, 0xffa030, 0x30d0e0, 0xff70b0, 0xf0f050, 0x60a0ff,
+      0xff5050,
+    ];
     const tint = palettes[this.playerIndex % palettes.length];
-    const built = CarFactory_build(this.carTypeIndex, tint);
+    const built = CarFactory_create(this.carTypeIndex, tint);
     this.mesh = built.group;
     this.wheels = built.wheels;
     this.mesh.position.copy(this.position);
@@ -58,4 +70,3 @@ class RemotePlayer extends GameObject3D {
     super.update(dt);
   }
 }
-

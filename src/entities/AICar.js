@@ -1,5 +1,12 @@
 // alert("AICar.js loaded");
-class AICar extends GameObject3D {
+import {
+    CarFactory_create,
+    CarFactory_getType
+} from "../graphics/CarFactory.js";
+
+import { GameObject3D } from "../core/GameObject3D.js";
+
+export class AICar extends GameObject3D {
   constructor(scene, x, z, carTypeIndex, speed, direction) {
     super(scene);
 
@@ -56,7 +63,7 @@ class AICar extends GameObject3D {
   }
 
   createMesh() {
-    const built = CarFactory_build(this.carTypeIndex, this.tint);
+    const built = CarFactory_create(this.carTypeIndex, this.tint);
 
     this.mesh = built.group;
     this.wheels = built.wheels;

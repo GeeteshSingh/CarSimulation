@@ -3,7 +3,15 @@
 // 🌳 Procedural roadside scenery
 // 🌙 Day/night cycle and weather
 // 🚘 Replace box cars with GLTF models and improve rendering
-class Player extends GameObject3D {
+import * as THREE from "three";
+
+import { GameObject3D } from "../core/GameObject3D.js";
+import {
+    CarFactory_create,
+    CarFactory_getType
+} from "../graphics/CarFactory.js";
+
+export class Player extends GameObject3D {
   constructor(scene, camera, playerIndex, carTypeIndex) {
     super(scene);
     this.name = 'Player';
@@ -25,7 +33,7 @@ class Player extends GameObject3D {
   }
 
   createMesh() {
-    const built = CarFactory_build(this.carTypeIndex);
+    const built = CarFactory_create(this.carTypeIndex);
     this.mesh = built.group;
     this.wheels = built.wheels;
     this.mesh.position.copy(this.position);
@@ -132,12 +140,12 @@ class Player extends GameObject3D {
     // Move world Z forward (car drives in +Z direction)
     this.position.z += this.forwardSpeed * dt;
     this.position.x = this.lateralOffset;
-    console.log(
-  "Left/Right:",
-  input.dx,
-  "X:",
-  this.position.x.toFixed(2)
-);
+//     console.log(
+//   "Left/Right:",
+//   input.dx,
+//   "X:",
+//   this.position.x.toFixed(2)
+// );
     this.rotation.y = this.heading;
 
     // Wheel spin animation

@@ -1,4 +1,20 @@
-class Game {
+import * as THREE from "three";
+
+import { Player } from "../entities/Player.js";
+import { AICar } from "../entities/AICar.js";
+import { RemotePlayer } from "../entities/RemotePlayer.js";
+import { RoadChunk } from "../world/RoadChunk.js";
+
+import {
+    CarFactory_typeCount,
+    CarFactory_getType
+} from "../graphics/CarFactory.js";
+
+import { GameObject3D } from "./GameObject3D.js";
+
+import { AssetLoader } from "../loaders/AssetLoader.js";
+
+export class Game {
   constructor() {
     window.game = this;
     this.entities = [];
@@ -13,6 +29,7 @@ class Game {
     this.lastFrame = performance.now();
     this.displayScore = 0;
     this.startZ = 0;
+    this.assetLoader = new AssetLoader();
 
     // Base class + factory sanity references (endless-mode helpers rely on these)
     // Wired: GameObject3D.js (base entity), CarFactory.js (shared car mesh factory)
@@ -38,8 +55,11 @@ class Game {
     this.camera.position.set(0, 6, -12);
     this.camera.lookAt(0, 1.5, 5);
 
-    this.playfield = document.getElementById('playfield');
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    this.playfield = document.getElementById("playfield");
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      preserveDrawingBuffer: true,
+    });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.playfield.appendChild(this.renderer.domElement);
@@ -76,8 +96,8 @@ class Game {
     this.entities.push(this.player);
 
     // ---------- Events ----------
-    window.addEventListener('resize', () => this.onResize());
-    if (typeof ResizeObserver !== 'undefined') {
+    window.addEventListener("resize", () => this.onResize());
+    if (typeof ResizeObserver !== "undefined") {
       new ResizeObserver(() => this.onResize()).observe(this.playfield);
     }
     this.onResize();
@@ -92,44 +112,51 @@ class Game {
     this.aiOncomingTimer = 0;
 
     // ---------- Kick loop ----------
-    this.start();
+    this.initialize();
   }
 
+ 
   // -------- Setup helpers --------
 
   seedRoad() {
     for (let i = -this.behindChunks; i < this.forwardChunks; i++) {
-      const chunk = new RoadChunk(this.scene, i * this.chunkLength, this.chunkLength);
+      const chunk = new RoadChunk(
+        this.scene,
+        i * this.chunkLength,
+        this.chunkLength,
+      );
       this.roadChunks.push(chunk);
       this.entities.push(chunk);
     }
   }
 
   bindInput() {
-    window.addEventListener('keydown', (e) => {
+    window.addEventListener("keydown", (e) => {
       this.keys[e.key] = true;
       this.keys[e.code] = true;
       // Car swap 1/2/3
-      if (e.key === '1') this.setCar(0);
-      if (e.key === '2') this.setCar(1);
-      if (e.key === '3') this.setCar(2);
+      if (e.key === "1") this.setCar(0);
+      if (e.key === "2") this.setCar(1);
+      if (e.key === "3") this.setCar(2);
     });
-    window.addEventListener('keyup', (e) => {
+    window.addEventListener("keyup", (e) => {
       this.keys[e.key] = false;
       this.keys[e.code] = false;
     });
-    window.addEventListener('blur', () => { this.keys = {}; });
+    window.addEventListener("blur", () => {
+      this.keys = {};
+    });
   }
 
   bindUI() {
-    document.querySelectorAll('.car-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.getAttribute('data-car'), 10) || 0;
+    document.querySelectorAll(".car-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.getAttribute("data-car"), 10) || 0;
         this.setCar(idx);
       });
     });
-    const respawn = document.getElementById('respawnBtn');
-    if (respawn) respawn.addEventListener('click', () => this.respawnPlayer());
+    const respawn = document.getElementById("respawnBtn");
+    if (respawn) respawn.addEventListener("click", () => this.respawnPlayer());
   }
 
   setCar(idx) {
@@ -137,22 +164,25 @@ class Game {
     if (idx === this.selectedCar) return;
     this.selectedCar = idx;
     this.player.swapCar(idx);
-    document.querySelectorAll('.car-btn').forEach((b) => {
-      b.classList.toggle('active', parseInt(b.getAttribute('data-car'), 10) === idx);
+    document.querySelectorAll(".car-btn").forEach((b) => {
+      b.classList.toggle(
+        "active",
+        parseInt(b.getAttribute("data-car"), 10) === idx,
+      );
     });
-    const label = document.getElementById('carValue');
+    const label = document.getElementById("carValue");
     if (label) label.textContent = CarFactory_getType(idx).name;
     // Broadcast to other players
     if (this.isConnected && Multiplayer && Multiplayer.sendMessage) {
-      Multiplayer.sendMessage('carChange', { carType: idx });
+      Multiplayer.sendMessage("carChange", { carType: idx });
     }
   }
 
   respawnPlayer() {
     if (!this.player) return;
     this.player.respawn();
-    const overlay = document.getElementById('crashOverlay');
-    if (overlay) overlay.classList.add('hidden');
+    const overlay = document.getElementById("crashOverlay");
+    if (overlay) overlay.classList.add("hidden");
   }
 
   // -------- Multiplayer --------
@@ -200,38 +230,44 @@ class Game {
             rp = this.remotePlayers[p.id];
           }
           if (rp) {
-            const px = typeof p.x === 'number' ? p.x : rp.targetPos.x;
-            const pz = typeof p.z === 'number' ? p.z : (typeof p.y === 'number' ? p.y : rp.targetPos.z);
+            const px = typeof p.x === "number" ? p.x : rp.targetPos.x;
+            const pz =
+              typeof p.z === "number"
+                ? p.z
+                : typeof p.y === "number"
+                  ? p.y
+                  : rp.targetPos.z;
             rp.targetPos.set(px, 0, pz);
-            if (typeof p.rotY === 'number') rp.targetRotY = p.rotY;
+            if (typeof p.rotY === "number") rp.targetRotY = p.rotY;
           }
         });
       });
 
       if (Multiplayer.onMessage) {
-        Multiplayer.onMessage('pos', (msg) => {
+        Multiplayer.onMessage("pos", (msg) => {
           const from = msg.from || (msg.data && msg.data.from);
           const data = msg.data || msg;
           if (!from || from === Multiplayer.getMyId()) return;
           const rp = this.remotePlayers[from];
           if (!rp) return;
-          if (typeof data.x === 'number' && typeof data.z === 'number') {
+          if (typeof data.x === "number" && typeof data.z === "number") {
             rp.targetPos.set(data.x, 0, data.z);
           }
-          if (typeof data.rotY === 'number') rp.targetRotY = data.rotY;
+          if (typeof data.rotY === "number") rp.targetRotY = data.rotY;
         });
-        Multiplayer.onMessage('carChange', (msg) => {
+        Multiplayer.onMessage("carChange", (msg) => {
           const from = msg.from || (msg.data && msg.data.from);
           const data = msg.data || msg;
           if (!from || from === Multiplayer.getMyId()) return;
           const rp = this.remotePlayers[from];
-          if (rp && typeof data.carType === 'number') rp.setCarType(data.carType);
+          if (rp && typeof data.carType === "number")
+            rp.setCarType(data.carType);
         });
       }
 
       this.updateSoloBadge();
     } catch (err) {
-      console.warn('Multiplayer connect failed, running solo:', err);
+      console.warn("Multiplayer connect failed, running solo:", err);
       this.isConnected = false;
     }
   }
@@ -239,10 +275,22 @@ class Game {
   addRemotePlayer(playerData) {
     if (!playerData || !playerData.id) return;
     if (this.remotePlayers[playerData.id]) return;
-    const carType = (playerData.carType != null) ? playerData.carType : (playerData.playerIndex || 0) % CarFactory_typeCount();
-    const rp = new RemotePlayer(this.scene, playerData.playerIndex || 0, carType);
-    if (typeof playerData.x === 'number') {
-      const pz = typeof playerData.z === 'number' ? playerData.z : (typeof playerData.y === 'number' ? playerData.y : 0);
+    const carType =
+      playerData.carType != null
+        ? playerData.carType
+        : (playerData.playerIndex || 0) % CarFactory_typeCount();
+    const rp = new RemotePlayer(
+      this.scene,
+      playerData.playerIndex || 0,
+      carType,
+    );
+    if (typeof playerData.x === "number") {
+      const pz =
+        typeof playerData.z === "number"
+          ? playerData.z
+          : typeof playerData.y === "number"
+            ? playerData.y
+            : 0;
       rp.position.set(playerData.x, 0, pz);
       rp.targetPos.set(playerData.x, 0, pz);
     }
@@ -251,13 +299,14 @@ class Game {
   }
 
   updateSoloBadge() {
-    const badge = document.getElementById('solo-badge');
+    const badge = document.getElementById("solo-badge");
     if (!badge) return;
     const count = Object.keys(this.remotePlayers).length;
     if (count > 0) {
-      badge.textContent = count + ' other driver' + (count > 1 ? 's' : '') + ' online';
+      badge.textContent =
+        count + " other driver" + (count > 1 ? "s" : "") + " online";
     } else {
-      badge.textContent = 'Solo — dodging AI traffic';
+      badge.textContent = "Solo — dodging AI traffic";
     }
   }
 
@@ -326,7 +375,10 @@ class Game {
 
     for (let i = this.roadChunks.length - 1; i >= 0; i--) {
       const c = this.roadChunks[i];
-      if (c.zStart + this.chunkLength < playerZ - (this.behindChunks + 1) * this.chunkLength) {
+      if (
+        c.zStart + this.chunkLength <
+        playerZ - (this.behindChunks + 1) * this.chunkLength
+      ) {
         const eIdx = this.entities.indexOf(c);
         if (eIdx !== -1) this.entities.splice(eIdx, 1);
         c.destroy();
@@ -355,10 +407,14 @@ class Game {
   }
 
   showCrashOverlay() {
-    const overlay = document.getElementById('crashOverlay');
-    const distEl = document.getElementById('crashDistance');
-    if (distEl) distEl.textContent = Math.max(0, Math.floor(this.player.position.z - this.startZ));
-    if (overlay) overlay.classList.remove('hidden');
+    const overlay = document.getElementById("crashOverlay");
+    const distEl = document.getElementById("crashDistance");
+    if (distEl)
+      distEl.textContent = Math.max(
+        0,
+        Math.floor(this.player.position.z - this.startZ),
+      );
+    if (overlay) overlay.classList.remove("hidden");
   }
 
   // -------- Camera / HUD --------
@@ -368,13 +424,13 @@ class Game {
     const target = new THREE.Vector3(
       this.player.position.x * 0.6,
       3.8,
-      this.player.position.z - 10
+      this.player.position.z - 10,
     );
     this.camera.position.lerp(target, 0.12);
     const look = new THREE.Vector3(
       this.player.position.x * 0.4,
       1.6,
-      this.player.position.z + 12
+      this.player.position.z + 12,
     );
     this.camera.lookAt(look);
   }
@@ -384,9 +440,9 @@ class Game {
     const speed = Math.floor(this.player.getSpeedKmh());
     const dist = Math.max(0, Math.floor(this.player.position.z - this.startZ));
     this.displayScore = dist + Math.floor(speed * 0.3);
-    const sp = document.getElementById('speedValue');
-    const ds = document.getElementById('distanceValue');
-    const sc = document.getElementById('scoreValue');
+    const sp = document.getElementById("speedValue");
+    const ds = document.getElementById("distanceValue");
+    const sc = document.getElementById("scoreValue");
     if (sp) sp.textContent = speed;
     if (ds) ds.textContent = dist;
     if (sc) sc.textContent = this.displayScore;
@@ -398,16 +454,16 @@ class Game {
     const k = this.keys;
     let dx = 0;
     let dz = 0;
-    
+
     // NATIVE ASSIGNMENT: Left reduces X, Right increases X to match 3D camera space
-    if (k['a'] || k['A'] || k['ArrowLeft']) dx -= 1;
-    if (k['d'] || k['D'] || k['ArrowRight']) dx += 1;
-    if (k['w'] || k['W'] || k['ArrowUp']) dz += 1;
-    if (k['s'] || k['S'] || k['ArrowDown']) dz -= 1;
-    
+    if (k["a"] || k["A"] || k["ArrowLeft"]) dx -= 1;
+    if (k["d"] || k["D"] || k["ArrowRight"]) dx += 1;
+    if (k["w"] || k["W"] || k["ArrowUp"]) dz += 1;
+    if (k["s"] || k["S"] || k["ArrowDown"]) dz -= 1;
+
     if (dz === 0) dz = 0.6;
-    const boost = !!(k['Shift'] || k['ShiftLeft'] || k['ShiftRight']);
-    const brake = !!(k[' '] || k['Space']);
+    const boost = !!(k["Shift"] || k["ShiftLeft"] || k["ShiftRight"]);
+    const brake = !!(k[" "] || k["Space"]);
     this.input.dx = dx;
     this.input.dz = dz;
     this.input.boost = boost;
@@ -443,7 +499,8 @@ class Game {
     }
 
     this.spawnAI(dt);
-    for (const ai of this.aiCars) ai.update(dt, this.player ? this.player.position.z : 0, this.aiCars);
+    for (const ai of this.aiCars)
+      ai.update(dt, this.player ? this.player.position.z : 0, this.aiCars);
 
     this.updateRoadChunks();
 
@@ -454,13 +511,18 @@ class Game {
     this.updateCamera();
     this.updateHUD();
 
-    if (this.isConnected && this.player && Multiplayer && Multiplayer.sendInput) {
+    if (
+      this.isConnected &&
+      this.player &&
+      Multiplayer &&
+      Multiplayer.sendInput
+    ) {
       Multiplayer.sendInput({ dx: this.input.dx, dy: 0, keys: {} });
       if (Multiplayer.sendMessage) {
         this._posBroadcastTimer = (this._posBroadcastTimer || 0) - dt;
         if (this._posBroadcastTimer <= 0) {
           this._posBroadcastTimer = 0.05;
-          Multiplayer.sendMessage('pos', {
+          Multiplayer.sendMessage("pos", {
             x: this.player.position.x,
             z: this.player.position.z,
             rotY: this.player.rotation.y,
@@ -469,9 +531,44 @@ class Game {
       }
     }
   }
+// this.scene.traverse((obj) => {
+//     if (!(obj instanceof THREE.Object3D)) {
+//         console.error("Not an Object3D:", obj);
+//     }
+// });
 
-  render() {
+render() {
     this.renderer.render(this.scene, this.camera);
+  }
+
+  async loadAssets() {
+    // console.log("Loading assets...");
+
+    const gltf = await this.assetLoader.loadGLB(
+      "/models/vehicles/sportscar.glb",
+    );
+
+    const model = gltf.scene.clone(true);
+
+    model.position.set(0, 0, 20);
+
+    model.scale.setScalar(2);
+
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    this.scene.add(model);
+
+    // console.log("Assets loaded.");
+  }
+
+  async initialize() {
+    await this.loadAssets();
+    this.start();
   }
 
   start() {
@@ -487,7 +584,7 @@ class Game {
     const r = this.playfield.getBoundingClientRect();
     const mouse = new THREE.Vector2(
       ((screenX - r.left) / r.width) * 2 - 1,
-      -((screenY - r.top) / r.height) * 2 + 1
+      -((screenY - r.top) / r.height) * 2 + 1,
     );
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, this.camera);

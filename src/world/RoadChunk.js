@@ -1,4 +1,7 @@
-class RoadChunk extends GameObject3D {
+import * as THREE from "three";
+import { GameObject3D } from "../core/GameObject3D.js";
+
+export class RoadChunk extends GameObject3D {
   constructor(scene, zStart, length) {
     super(scene);
     this.name = 'RoadChunk';

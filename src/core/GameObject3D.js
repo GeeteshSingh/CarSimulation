@@ -1,5 +1,7 @@
-class GameObject3D {
-  constructor(scene) {
+import * as THREE from "three";
+
+export class GameObject3D {
+    constructor(scene) {
     this.scene = scene;
     this.mesh = null;
     this.position = new THREE.Vector3();

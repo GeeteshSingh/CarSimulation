@@ -1,5 +1,7 @@
 // Utility module — shared car mesh factory used by Player, RemotePlayer, and AICar.
 // No class, only top-level helpers prefixed with the file stem.
+import * as THREE from "three";
+import { GameObject3D } from "../core/GameObject3D.js";
 
 const CarFactory_TYPES = [
   {
@@ -55,16 +57,16 @@ const CarFactory_TYPES = [
   },
 ];
 
-function CarFactory_getType(index) {
+export function CarFactory_getType(index) {
   const i = ((index % CarFactory_TYPES.length) + CarFactory_TYPES.length) % CarFactory_TYPES.length;
   return CarFactory_TYPES[i];
 }
 
-function CarFactory_typeCount() {
+export function CarFactory_typeCount() {
   return CarFactory_TYPES.length;
 }
 
-function CarFactory_build(typeIndex, tint) {
+export function CarFactory_create(typeIndex, tint) {
   const type = CarFactory_getType(typeIndex);
   const group = new THREE.Group();
 
@@ -167,4 +169,3 @@ function CarFactory_build(typeIndex, tint) {
 
   return { group, wheels, type };
 }
-
