@@ -6,8 +6,9 @@ import { RemotePlayer } from "../entities/RemotePlayer.js";
 import { RoadChunk } from "../world/RoadChunk.js";
 
 import {
-    CarFactory_typeCount,
-    CarFactory_getType
+  CarFactory_typeCount,
+  CarFactory_registerModel,
+  CarFactory_getType,
 } from "../graphics/CarFactory.js";
 
 import { GameObject3D } from "./GameObject3D.js";
@@ -15,7 +16,7 @@ import { GameObject3D } from "./GameObject3D.js";
 import { AssetLoader } from "../loaders/AssetLoader.js";
 
 export class Game {
-  constructor() {
+  constructor(scene, camera, playerIndex, carTypeIndex) {
     window.game = this;
     this.entities = [];
     this.remotePlayers = {};
@@ -90,10 +91,10 @@ export class Game {
     this.seedRoad();
 
     // ---------- Player (created immediately for solo play) ----------
-    this.selectedCar = 0;
-    this.player = new Player(this.scene, this.camera, 0, this.selectedCar);
-    this.player.forwardSpeed = 8;
-    this.entities.push(this.player);
+    // this.selectedCar = 0;
+    // this.player = new Player(this.scene, this.camera, 0, this.selectedCar);
+    // this.player.forwardSpeed = 8;
+    // this.entities.push(this.player);
 
     // ---------- Events ----------
     window.addEventListener("resize", () => this.onResize());
@@ -115,7 +116,6 @@ export class Game {
     this.initialize();
   }
 
- 
   // -------- Setup helpers --------
 
   seedRoad() {
@@ -531,45 +531,86 @@ export class Game {
       }
     }
   }
-// this.scene.traverse((obj) => {
-//     if (!(obj instanceof THREE.Object3D)) {
-//         console.error("Not an Object3D:", obj);
-//     }
-// });
+  // this.scene.traverse((obj) => {
+  //     if (!(obj instanceof THREE.Object3D)) {
+  //         console.error("Not an Object3D:", obj);
+  //     }
+  // });
 
-render() {
+  render() {
     this.renderer.render(this.scene, this.camera);
   }
+async loadAssets() {
 
-  async loadAssets() {
-    // console.log("Loading assets...");
+    console.log("Loading assets...");
 
     const gltf = await this.assetLoader.loadGLB(
-      "/models/vehicles/sportscar.glb",
+        "/models/vehicles/sportscar.glb"
     );
 
-    const model = gltf.scene.clone(true);
+    console.log(gltf);
 
-    model.position.set(0, 0, 20);
+    // THIS WAS MISSING
+    this.testCar = gltf.scene.clone(true);
+console.log("Root:", this.testCar);
 
-    model.scale.setScalar(2);
+this.testCar.traverse((obj) => {
+    console.log(obj.type, obj.name);
+});
+    // Huge scale so we definitely see it
+    this.testCar.scale.set(10, 10, 10);
 
-    model.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
+    // Put it near the player
+    this.testCar.position.set(0, 0, 30);
+
+    this.testCar.rotation.set(0, Math.PI, 0);
+
+    this.testCar.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
     });
 
-    this.scene.add(model);
+    this.scene.add(this.testCar);
 
-    // console.log("Assets loaded.");
-  }
+    const box = new THREE.Box3().setFromObject(this.testCar);
 
-  async initialize() {
+    console.log("Bounding Box:", box);
+console.log(
+    "Size:",
+    box.getSize(new THREE.Vector3())
+);
+
+console.log(
+    "Center:",
+    box.getCenter(new THREE.Vector3())
+);
+    const helper = new THREE.Box3Helper(box, 0xff0000);
+
+    this.scene.add(helper);
+
+    console.log("GLB added to scene.");
+}
+async initialize() {
+
     await this.loadAssets();
+
+    this.selectedCar = 0;
+
+    this.player = new Player(
+        this.scene,
+        this.camera,
+        0,
+        this.selectedCar
+    );
+
+    this.player.forwardSpeed = 8;
+
+    this.entities.push(this.player);
+
     this.start();
-  }
+}
 
   start() {
     const loop = () => {

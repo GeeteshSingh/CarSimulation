@@ -56,7 +56,14 @@ const CarFactory_TYPES = [
     mass: 1.25,
   },
 ];
+const MODEL_CACHE = new Map();
+export function CarFactory_registerModel(id, scene) {
+    MODEL_CACHE.set(id, scene);
+}
 
+export function CarFactory_hasModel(id) {
+    return MODEL_CACHE.has(id);
+}
 export function CarFactory_getType(index) {
   const i = ((index % CarFactory_TYPES.length) + CarFactory_TYPES.length) % CarFactory_TYPES.length;
   return CarFactory_TYPES[i];
@@ -68,6 +75,30 @@ export function CarFactory_typeCount() {
 
 export function CarFactory_create(typeIndex, tint) {
   const type = CarFactory_getType(typeIndex);
+
+if (MODEL_CACHE.has(type.id)) {
+
+    const model = MODEL_CACHE.get(type.id).clone(true);
+
+    model.traverse((child) => {
+
+        if (child.isMesh) {
+
+            child.castShadow = true;
+            child.receiveShadow = true;
+
+        }
+
+    });
+
+    return {
+        group: model,
+        wheels: [],
+        type
+    };
+
+}
+  // const type = CarFactory_getType(typeIndex);
   const group = new THREE.Group();
 
   const bodyColor = tint !== undefined ? tint : type.bodyColor;
